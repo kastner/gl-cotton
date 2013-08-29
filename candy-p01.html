@@ -3,7 +3,8 @@
   <title>un-Minimal GL... p01</title>
 </head>
 <body>
-<canvas id='c' height=800 width=800 style="top:0;left:0;width:100%;height:100%;position:fixed">
+<!-- <canvas id='c' height=900 width=900 style="top:0;left:0;width:100%;height:100%;position:fixed"> -->
+<canvas id='c' height=500 width=500>
 <script>
   var goTime = true;
   g = document.getElementById('c').getContext('experimental-webgl');
@@ -17,7 +18,7 @@
 
     // void shaderSource(WebGLShader? shader, DOMString source);
     // shaderSource(vShader, 'attribute vec2 p;void main(){gl_Position = vec4(p, 0, 1); }');
-    shaderSource(vShader, 'attribute vec2 p; varying vec2 vTexCoord; uniform vec2 uOffset; void main(){vTexCoord = p + uOffset; gl_Position = vec4(p, 0, 1); }');
+    shaderSource(vShader, 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0, 1); }');
 
     // void compileShader(WebGLShader? shader);
     compileShader(vShader); // was coS(a) - third part of the for loop
@@ -38,7 +39,9 @@
     // shaderSource(fShader, 'uniform lowp float t;void main(){lowp vec4 P=vec4(0,0,-2,0),D=gl_FragCoord/vec4(375,375,1,1)-1.,S=vec4(cos(t),sin(t),cos(t*.9),0)*.8,C=vec4(.4,.6,.7,9),f,T;for(int r=0;r<99;r++){T=P;T.w=dot(S,S)/4.;lowp float s=D.z=1.,k=dot(T,T);for(int m=0;m<7;m++)k<4.?s*=4.*k,f=2.*T.x*T,f.x=2.*T.x*T.x-k,k=dot(T=f+S,T):k;s=sqrt(k/s)*log(k)/4.;P+=D/length(D)*s;if(.001>s){C*=log(k);break;}}gl_FragColor=C+D.y*.4;}');
     // shaderSource(fShader, 'precision mediump float;void main() { gl_FragColor = vec4(0,0.8,0,2); }');
     // shaderSource(fShader, 'precision mediump float; uniform float size; void main(void) {vec2 colors = gl_FragCoord.xy / size; gl_FragColor = vec4(colors.xy, 1, 1); }');
-    shaderSource(fShader, 'precision mediump float; varying vec2 vTexCoord; void main(void) {gl_FragColor = vec4(vTexCoord, 0, 1); }');
+    // shaderSource(fShader, 'precision highp float; precision mediump int; uniform vec2 uCanvasSize; vec4 calc(vec2 texCoord) { float x=0.0; float y=0.0; for(int iter=0; iter<100; ++iter) {float xt = x*x - y*y + texCoord.x; y=2.0+x*y+texCoord.y; x = xt; if (x*x+y*y >= 8.0) { float d=float(iter)/20.0; return vec4(d, d, d, 1);}} return vec4(0, 0, 0, 1); } void main(void) {vec2 texCoord = (gl_FragCoord.xy / uCanvasSize.xy) * 2.0 - vec2(1.0, 1.0); gl_FragColor = calc(texCoord); }');
+    // shaderSource(fShader, 'precision mediump float;\nuniform vec2 uCanvasSize;\nvec4 calc(vec2 texCoord) {\nreturn vec4(texCoord, 0, 1);\n}\nvoid main(void) {\nvec2 texCoord = (gl_FragCoord.xy / uCanvasSize.xy) * 2.0 - vec2(1.0, 1.0);\ngl_FragColor = calc(texCoord);\n}');
+    shaderSource(fShader, '#ifdef GL_FRAGMENT_PRECIION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nprecision mediump int;\nuniform vec2 uCanvasSize;\nuniform vec2 uOffset;\nuniform float uScale;\nvec4 calc(vec2 texCoord) {\nfloat x = 0.0;\nfloat y = 0.0;\nfloat v = 10000.0;\nfloat j = 10000.0;\nfor(int iter=0; iter<1000; ++iter) {\nfloat xtemp = x*x - y*y + texCoord.x;\ny = 2.0*x*y+texCoord.y;\nx = xtemp;\nv = min(v, abs(x*x + y*y));\nj = min(j, abs(x * y));\nif(x*x+y*y >= 32.0) {\nfloat d = (float(iter) - (log(log(sqrt(x*x+y*y))) / log(2.0))) / 50.0;\nv = (1.0 - v) / 2.0;\nj = (1.0 - j) / 2.0;\nreturn vec4(d+j, d, d+v, 1);\n}\n}\nreturn vec4(0, 0, 0, 1);\n}\nvoid main(void) {\nvec2 texCoord = (gl_FragCoord.xy / uCanvasSize.xy) * uScale - uOffset;\ngl_FragColor = calc(texCoord);\n}');
     // goTime=false;
 
     // void compileShader(WebGLShader? shader);
@@ -93,6 +96,10 @@
     // vertexAttribPointer(0, 2 /* size */, FLOAT /* type */, false /* normalized */, undefined /* stride */, buffD /* offset */);
 
     var lastTime = 0;
+    var iv = null;
+    var actions = [];
+    var keyMappings = { '39' : 'panleft', '40' : 'panup', '37' : 'panright', '38' : 'pandown', '221' : 'zoomin', '219' : 'zoomout' };
+
     function go(time) {
       // if (goTime) requestAnimationFrame(go);
       if (time - lastTime < 50) { return; }
@@ -100,11 +107,36 @@
 
       // WebGLUniformLocation? getUniformLocation(WebGLProgram? program, DOMString name)
       // var sloc = g.getUniformLocation(program, "size");
-      var vTexCoord = g.getUniformLocation(program, "vTexCoord");
+      // var vTexCoord = g.getUniformLocation(program, "vTexCoord");
       program.pPtr = g.getAttribLocation(program, "p");
-      program.ouPtr = g.getUniformLocation(program, "uOffset");
+      program.canvasUni = g.getUniformLocation(program, "uCanvasSize");
+      program.fracOffset = g.getUniformLocation(program, "uOffset");
+      program.fracScale = g.getUniformLocation(program, "uScale");
+      for (var k in keyMappings) {
+        actions[keyMappings[k]] = false;
+      }
 
-      g.uniform2f(program.ouPtr, 1, 1);
+      window.onkeydown = function(e) {
+        var kc = e.keyCode.toString();
+        if (keyMappings.hasOwnProperty(kc)) {
+          actions[keyMappings[kc]] = true;
+        }
+        if (!iv) {
+          iv = setInterval(draw, 16);
+        }
+      };
+
+      window.onkeyup = function(e) {
+        var kc = e.keyCode.toString();
+        if (keyMappings.hasOwnProperty(kc)) {
+          actions[keyMappings[kc]] = false;
+        }
+        if (iv) {
+          clearInterval(iv);
+          iv = null;
+        }
+      };
+
       // void uniform1f(WebGLUniformLocation? location, GLfloat x);
       // g.uniform1f(loc, time / 1000);
       // g.uniform1f(vTexCoord, document.getElementById('c').width * 2);
@@ -116,6 +148,20 @@
       g.vertexAttribPointer(program.pPtr, glBuffer.itemSize, g.FLOAT, false, 0, 0);
       // void drawArrays(GLenum mode, GLint first, GLsizei count)
       // g.drawArrays(g.TRIANGLES, loc, 3);
+      draw();
+    }
+
+    var offset = [2.2, 1.4];
+    var scale = 3.0;
+
+    function draw() {
+      offset[0] += -(actions.panleft ? scale / 25 : 0) + (actions.panright ? scale / 25 : 0);
+      offset[1] += -(actions.pandown ? scale / 25 : 0) + (actions.panup ? scale / 25 : 0);
+      scale = scale * (actions.zoomin ? 0.975 : 1.0) / (actions.zoomout ? 0.975 : 1.0);
+
+      g.uniform2f(program.canvasUni, c.width, c.height);
+      g.uniform2f(program.fracOffset, offset[0], offset[1]);
+      g.uniform1f(program.fracScale, scale);
       g.drawArrays(g.TRIANGLE_STRIP, 0, glBuffer.numItems);
     }
 
