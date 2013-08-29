@@ -1,0 +1,89 @@
+<html>
+<head>
+  <title>un-Minimal GL... p01</title>
+</head>
+<body>
+<canvas id='c' style="top:0;left:0;width:100%;height:100%;position:fixed">
+<script>
+  g = document.getElementById('c').getContext('experimental-webgl');
+
+  // hisss ;)
+  with(g) {
+    var program = createProgram(); // was p = crP(t = 2) as the first part of the for loop
+
+    // WebGLShader? createShader(type) - VERTEX_SHADER = 0x8B31 = 35634 - 2nd t (1)
+    var vShader = createShader(VERTEX_SHADER);
+
+    // void shaderSource(WebGLShader? shader, DOMString source);
+    shaderSource(vShader, 'attribute vec4 p;void main(){gl_Position=p;}');
+
+    // void compileShader(WebGLShader? shader);
+    compileShader(vShader); // was coS(a) - third part of the for loop
+
+    // void attachShader(WebGLProgram? program, WebGLShader? shader);
+    attachShader(program, vShader); // was atS(p, s) - third part of the for loop
+
+
+    // WebGLShader? createShader(type) -- FRAGMENT_SHADER = 0x8B31 = 35634 - 1st t (1)
+    var fShader = createShader(FRAGMENT_SHADER);
+
+    // void shaderSource(WebGLShader? shader, DOMString source);
+    shaderSource(fShader, 'uniform lowp float t;void main(){lowp vec4 P=vec4(0,0,-2,0),D=gl_FragCoord/vec4(150,75,1,1)-1.,S=vec4(cos(t),sin(t),cos(t*.9),0)*.8,C=vec4(.4,.6,.7,9),f,T;for(int r=0;r<99;r++){T=P;T.w=dot(S,S)/4.;lowp float s=D.z=1.,k=dot(T,T);for(int m=0;m<7;m++)k<4.?s*=4.*k,f=2.*T.x*T,f.x=2.*T.x*T.x-k,k=dot(T=f+S,T):k;s=sqrt(k/s)*log(k)/4.;P+=D/length(D)*s;if(.001>s){C*=log(k);break;}}gl_FragColor=C+D.y*.4;}');
+
+    // void compileShader(WebGLShader? shader);
+    compileShader(fShader); // was coS(a) - third part of the for loop
+
+    // void attachShader(WebGLProgram? program, WebGLShader? shader);
+    attachShader(program, fShader); // was atS(p, s) - third part of the for loop
+
+
+    // WebGLBuffer? createBuffer();
+    var glBuffer = createBuffer();
+
+    // void bindBuffer(GLenum target, WebGLBuffer? buffer);
+    // const GLenum ARRAY_BUFFER                   = 0x8892; - was var k = 34962;
+    bindBuffer(ARRAY_BUFFER, glBuffer);
+
+    // void enableVertexAttribArray(GLuint index);
+    enableVertexAttribArray(undefined);
+
+    // void linkProgram(WebGLProgram? program)
+    linkProgram(program);
+
+    // void useProgram(WebGLProgram? program);
+    useProgram(program);
+
+    var vertArray = new Float32Array([1, 1, 1, -3, -3, 1]);
+
+    // void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
+    // void bufferData(GLenum target, ArrayBufferView data, GLenum usage);
+    // void bufferData(GLenum target, ArrayBuffer? data, GLenum usage);
+    // const GLenum ARRAY_BUFFER                   = 0x8892; - was var k = 34962;
+    // const GLenum STATIC_DRAW                    = 0x88E4; - was k+82
+    var buffD = bufferData(ARRAY_BUFFER, vertArray, STATIC_DRAW);
+
+    // void vertexAttribPointer(GLuint indx, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLintptr offset);
+    // const GLenum FLOAT                          = 0x1406; was 5126
+    vertexAttribPointer(undefined, 2 /* size */, FLOAT /* type */, true /* normalized */, undefined /* stride */, buffD /* offset */);
+
+    var lastTime = 0;
+    function go(time) {
+      // requestAnimationFrame(go);
+      if (time - lastTime < 50) { return; }
+      lastTime = time;
+
+      // WebGLUniformLocation? getUniformLocation(WebGLProgram? program, DOMString name)
+      var loc = g.getUniformLocation(program, "t");
+
+      // void uniform1f(WebGLUniformLocation? location, GLfloat x);
+      g.uniform1f(loc, time / 1000);
+
+      // void drawArrays(GLenum mode, GLint first, GLsizei count)
+      g.drawArrays(4, loc, 3);
+    }
+
+    go(100);
+  }
+</script>
+</body>
+</html>
